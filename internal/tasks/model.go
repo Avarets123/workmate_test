@@ -25,6 +25,7 @@ type TaskListing struct {
 }
 
 type Task struct {
+	Id        int                `json:"id"`
 	Name      string             `json:"name"`
 	Desc      string             `json:"description"`
 	Progress  int16              `json:"progress"`

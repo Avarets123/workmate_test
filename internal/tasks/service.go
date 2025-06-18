@@ -15,16 +15,16 @@ func NewService(repo Repository) *Service {
 	}
 }
 
-func (s *Service) FindOne(name string) (*Task, *cerror.CError) {
-	return s.repo.GetOne(name)
+func (s *Service) FindOne(id int) (*Task, *cerror.CError) {
+	return s.repo.GetOne(id)
 }
 
-func (s *Service) Create(data TaskCreateReq) (*Task, *cerror.CError) {
+func (s *Service) Create(data TaskCreateReq) *Task {
 	return s.repo.Create(data.Name, data.Desc)
 }
 
-func (s *Service) Cancel(name string) *cerror.CError {
-	return s.repo.Cancel(name)
+func (s *Service) Cancel(id int) *cerror.CError {
+	return s.repo.Cancel(id)
 }
 
 func (s *Service) Listing() TaskListing {

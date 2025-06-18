@@ -8,52 +8,52 @@ import (
 )
 
 type Repository interface {
-	Create(name, desc string) (*Task, *cerror.CError)
+	Create(name, desc string) *Task
 	FindMany() []*Task
-	GetOne(name string) (*Task, *cerror.CError)
-	Cancel(name string) *cerror.CError
+	GetOne(id int) (*Task, *cerror.CError)
+	Cancel(id int) *cerror.CError
 }
 
 type repository struct {
-	logger    *slog.Logger
-	data      []*Task
-	dataIndex map[string]int
-	mu        *sync.RWMutex
+	logger *slog.Logger
+	data   []*Task
+	mu     *sync.RWMutex
 }
 
 func NewRepo(logger *slog.Logger) Repository {
 	return &repository{
-		logger:    logger,
-		mu:        &sync.RWMutex{},
-		data:      []*Task{},
-		dataIndex: map[string]int{},
+		logger: logger,
+		mu:     &sync.RWMutex{},
+		data:   []*Task{},
 	}
 }
 
-func (r *repository) Create(name, desc string) (*Task, *cerror.CError) {
+func (r *repository) Create(name, desc string) *Task {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.hasTask(name) {
-		msg := "TASK_BY_PASSED_NAME_EXISTS"
-		r.logger.Error(msg)
-		return &Task{}, cerror.New(msg, http.StatusBadRequest)
-	}
-
 	task := NewTask(name, desc)
+	task.Id = len(r.data) + 1
 
 	r.data = append(r.data, task)
-	r.dataIndex[name] = len(r.data) - 1
 
 	r.logger.Info("New task was created!")
 
-	return task, nil
+	return task
 
 }
 
-func (r *repository) hasTask(name string) bool {
-	_, ok := r.dataIndex[name]
-	return ok
+func (r *repository) hasTask(id int) bool {
+
+	if id < 1 {
+		return false
+	}
+
+	if len(r.data) < id {
+		return false
+	}
+
+	return true
 }
 
 func (r *repository) FindMany() []*Task {
@@ -62,32 +62,29 @@ func (r *repository) FindMany() []*Task {
 	return r.data
 }
 
-func (r *repository) Cancel(name string) *cerror.CError {
+func (r *repository) Cancel(id int) *cerror.CError {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if !r.hasTask(name) {
+	if !r.hasTask(id) {
 		msg := "TASK_NOT_FOUND"
-		r.logger.Info(msg)
+		r.logger.Error(msg)
 		return cerror.New(msg, http.StatusNotFound)
 	}
 
-	taskIdx := r.dataIndex[name]
-	r.data[taskIdx].cancel()
+	r.data[id-1].cancel()
 	r.logger.Info("Task was canceled!")
 
 	return nil
 }
 
-func (r *repository) GetOne(name string) (*Task, *cerror.CError) {
+func (r *repository) GetOne(id int) (*Task, *cerror.CError) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if !r.hasTask(name) {
+	if !r.hasTask(id) {
 		return &Task{}, cerror.New("TASK_NOT_FOUND", http.StatusNotFound)
 	}
 
-	taskIdx := r.dataIndex[name]
-
-	return r.data[taskIdx], nil
+	return r.data[id-1], nil
 
 }
