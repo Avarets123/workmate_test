@@ -71,7 +71,13 @@ func (r *repository) Cancel(id int) *cerror.CError {
 		return cerror.New(msg, http.StatusNotFound)
 	}
 
-	r.data[id-1].cancel()
+	task := r.data[id-1]
+
+	if task.Status == TaskSuccessStatus {
+		return cerror.New("TASK_WAS_COMPLETED_SUCCESSFULLY", http.StatusBadRequest)
+	}
+
+	task.cancel()
 	r.logger.Info("Task was canceled!")
 
 	return nil
